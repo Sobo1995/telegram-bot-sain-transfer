@@ -3,13 +3,14 @@ from flask import Flask, request
 import telegram
 import os
 import re
+import requests
 
 TOKEN = "7913606596:AAFnw_ur4a5U0hs2mbeD-kAeZwIXJY89-pI"
 bot = telegram.Bot(token=TOKEN)
-
 app = Flask(__name__)
 
-HANSH = 462  # Static ханш
+GPT_API = "https://api.binjie.fun/api/gpt"  # Example public GPT proxy (unstable but free)
+HANSH = 462
 
 def get_fee_by_yuan(yuan):
     if yuan <= 1000:
@@ -27,17 +28,25 @@ def get_fee_by_yuan(yuan):
 
 def normalize_input(text):
     replacements = {
-        "ariljaa": "арилжаа", "hanh": "ханш", "hansh": "ханш",
-        "belen": "бэлэн", "bus": "бус", "utas": "утас", "tugrug": "төгрөг",
-        "tug": "төгрөг", "t": "төгрөг", "yuan": "юань", "yuani": "юань",
-        "shimtghel": "шимтгэл", "shimtgel": "шимтгэл", "bichig": "бичиг", "barimt": "баримт"
+        "ariljaa": "арилжаа", "hansh": "ханш", "belen": "бэлэн", "bus": "бус",
+        "tugrug": "төгрөг", "tug": "төгрөг", "t": "төгрөг", "yuan": "юань",
+        "shimtgel": "шимтгэл", "bichig": "бичиг", "barimt": "баримт"
     }
     for latin, cyrillic in replacements.items():
         text = re.sub(rf"\b{latin}\b", cyrillic, text)
-    # also support cases like "100000tugrug"
     text = re.sub(r"(\d{3,})\s*(tugrug|tug|t)", r"\1 төгрөг", text)
-    text = re.sub(r"(\d{3,})\s*(yuan|yuani)", r"\1 юань", text)
+    text = re.sub(r"(\d{3,})\s*(yuan)", r"\1 юань", text)
     return text
+
+def fallback_gpt_response(prompt):
+    try:
+        r = requests.post(GPT_API, json={"prompt": prompt})
+        if r.ok:
+            return r.json().get("text", "GPT-ээс хариу олдсонгүй.")
+        else:
+            return "GPT холболтын алдаа."
+    except:
+        return "GPT server-д холбогдож чадсангүй."
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
@@ -48,7 +57,7 @@ def webhook():
 
     response = ""
 
-    if "бичиг баримт" in message_text or "шаардлагатай мэдээлэл" in message_text:
+    if "бичиг баримт" in message_text:
         response = (
             "📄 Шаардлагатай мэдээлэл, бичиг баримтын жагсаалт:\n"
             "- Илгээгчийн бичиг баримт (зураг, файл хэлбэрээр)\n"
@@ -61,12 +70,7 @@ def webhook():
         response = (
             "💱 Арилжаа хийх нөхцөл:\n"
             "Бид таны төлбөр тооцооны хэрэгцээнд юанийн бэлэн болон бэлэн бус арилжааг "
-            "зах зээлд өрсөлдөхүйц уян хатан ханшаар тогтмол санал болгож байна.\n"
-            "Та манай байнгын харилцагч болсноор илүү уян хатан ханш авах боломжтой.\n\n"
-            "📌 Арилжаа хийхэд анхаарах зүйлс:\n"
-            "- Өндөр дүнтэй арилжаа: Салбараар … сая төгрөг хүртэлх дүнтэй арилжааг шууд хийх боломжтой.\n"
-            "- Бэлэн валют: бэлнээр байгаа эсвэл хадгаламжийн дансанд буй валют\n"
-            "- Бэлэн бус валют: харилцах, карт, зээлийн данс, гадаад гуйвуулга гэх мэт"
+            "зах зээлд өрсөлдөхүйц уян хатан ханшаар тогтмол санал болгож байна."
         )
     elif "ханш" in message_text:
         response = f"📈 Манай ханш: 1 юань = {HANSH}₮"
@@ -81,7 +85,6 @@ def webhook():
             "100,000¥+ → 25,000₮ + 100¥"
         )
     else:
-        # Check for amount input
         tugrug_match = re.search(r"(\d{3,})(\s*төгрөг|₮)", message_text)
         yuan_match = re.search(r"(\d{3,})(\s*юань|¥)", message_text)
 
@@ -94,7 +97,6 @@ def webhook():
             response = (
                 f"💰 Таны оруулсан дүн: {amount:,}₮\n"
                 f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥\n"
-                f"💱 Ханш: 1 юань = {HANSH}₮\n"
                 f"➡️ Шилжих дүн: {net:,}₮ → {final_yuan}¥"
             )
         elif yuan_match:
@@ -104,9 +106,8 @@ def webhook():
                 f"💴 Таны оруулсан дүн: {yuan:,}¥\n"
                 f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥"
             )
-
-    if not response:
-        response = "Сайн байна уу! Та ханш, шимтгэл, арилжаа, бичиг баримт, эсвэл төгрөг/юанийн дүн оруулан асууж болно."
+        else:
+            response = fallback_gpt_response(message_text)
 
     bot.send_message(chat_id=chat_id, text=response)
     return "ok"
