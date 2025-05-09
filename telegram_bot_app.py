@@ -2,11 +2,28 @@
 from flask import Flask, request
 import telegram
 import os
+import re
 
 TOKEN = "7913606596:AAFnw_ur4a5U0hs2mbeD-kAeZwIXJY89-pI"
 bot = telegram.Bot(token=TOKEN)
 
 app = Flask(__name__)
+
+HANSH = 462  # Static for now
+
+def get_fee_by_yuan(yuan):
+    if yuan <= 1000:
+        return 3000, 30
+    elif yuan <= 10000:
+        return 5000, 50
+    elif yuan <= 20000:
+        return 5000, 100
+    elif yuan <= 50000:
+        return 10000, 100
+    elif yuan <= 100000:
+        return 20000, 100
+    else:
+        return 25000, 100
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
@@ -14,40 +31,45 @@ def webhook():
     chat_id = update.message.chat.id
     message_text = update.message.text.lower()
 
-    # Normalize Latin to Cyrillic (very basic mapping for key phrases)
-    replacements = {
-        "utac": "утас", "utas": "утас",
-        "baiguullaga": "сайн финанс", "tanai": "та нарын тухай",
-        "tsag": "цагийн хуваарь", "tsagiin": "цагийн хуваарь",
-        "shimtel": "шимтгэл", "shimtghel": "шимтгэл",
-        "haan": "хаана", "baiguulal": "байршил",
-        "agent": "агент", "web": "вэб", "site": "сайт",
-        "tuuh": "та нарын тухай", "ajliin": "ажлын цаг"
-    }
+    response = ""
 
-    for latin, cyrillic in replacements.items():
-        if latin in message_text:
-            message_text += " " + cyrillic
-
-    # Response logic
-    if "ханш" in message_text:
-        response = "2025 оны 5-р сарын 9-ны байдлаар 1 юань = 462₮ байна."
-    elif "агент" in message_text or "хаана" in message_text:
-        response = "Манайх онлайн захиалга авч, түргэн шуурхай найдвартай шилжүүлдэг."
-    elif "шимтгэл" in message_text or "хураамж" in message_text:
-        response = "Шимтгэл 100,000₮-с доош бол 3,000₮, 100,000₮-с дээш бол 5,000₮ байна."
-    elif "та нарын тухай" in message_text or "юу хийдэг вэ" in message_text or "сайн финанс" in message_text:
-        response = "Бид хамгийн сүүлийн үеийн технологи, ухаалаг шийдлийг ашиглан харилцагчдын санхүүгийн хэрэглээг хялбаршуулах зорилгын дор 7 дахь жилдээ амжилттай үйл ажиллагаа явуулж байна. Дэлхийн стандартыг үйлчилгээндээ нэвтрүүлж, юанийн болон бусад гадаад төлбөр тооцоог цахимжуулан салбартаа түүчээлэгч нь болон ажиллаж байна."
-    elif "цагийн хуваарь" in message_text or "ажлын цаг" in message_text:
-        response = "Дав – Ба: 9:00 - 18:00\nОнлайн гуйвуулга: 24/7"
-    elif "утас" in message_text or "дугаар" in message_text or "холбогдох" in message_text:
-        response = "Та бидэнтэй 80908090 дугаараар холбогдоорой."
-    elif "байршил" in message_text or "оффис" in message_text or "хаана" in message_text:
-        response = "Бид Найман шаргын “Мөнгөт Шарга төв”-ийн 205 тоотод байрлаж байна."
-    elif "вэб" in message_text or "сайт" in message_text or "хуудас" in message_text:
-        response = "Манай вэбсайт: https://www.sainbbsb.mn"
+    # Required documents info
+    if "бичиг баримт" in message_text or "шаардлагатай мэдээлэл" in message_text:
+        response = (
+            "📄 Шаардлагатай мэдээлэл, бичиг баримтын жагсаалт:\n"
+            "- Илгээгчийн бичиг баримт (зураг, файл хэлбэрээр)\n"
+            "- Хүлээн авагчийн бичиг баримт (зураг, файл хэлбэрээр)\n"
+            "- Хүлээн авагчийн банкны нэр, дансны дугаар, банкны хаяг\n"
+            "- Гүйлгээний дэлгэрэнгүй утга\n"
+            "- Ажил үйлчилгээний гэрээ (*шаардлагатай тохиолдолд*)"
+        )
     else:
-        response = "Сайн байна уу! Та ханш, шимтгэл, агент, цагийн хуваарь, байршлын талаар асууж болно."
+        # Check for amount input
+        tugrug_match = re.search(r"(\d{3,})(\s*төгрөг|₮)", message_text)
+        yuan_match = re.search(r"(\d{3,})(\s*юань|¥)", message_text)
+
+        if tugrug_match:
+            amount = int(tugrug_match.group(1))
+            approx_yuan = amount / HANSH
+            fee_t, fee_y = get_fee_by_yuan(approx_yuan)
+            net = amount - fee_t
+            final_yuan = round(net / HANSH, 2)
+            response = (
+                f"💰 Таны оруулсан дүн: {amount:,}₮\n"
+                f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥\n"
+                f"💱 Ханш: 1 юань = {HANSH}₮\n"
+                f"➡️ Шилжих дүн: {net:,}₮ → {final_yuan}¥"
+            )
+        elif yuan_match:
+            yuan = int(yuan_match.group(1))
+            fee_t, fee_y = get_fee_by_yuan(yuan)
+            response = (
+                f"💴 Таны оруулсан дүн: {yuan:,}¥\n"
+                f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥"
+            )
+
+    if not response:
+        response = "Сайн байна уу! Та ханш, шимтгэл, бичиг баримтын шаардлага, эсвэл төгрөг/юанийн дүн оруулан шимтгэл бодох боломжтой."
 
     bot.send_message(chat_id=chat_id, text=response)
     return "ok"
