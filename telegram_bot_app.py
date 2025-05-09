@@ -12,7 +12,7 @@ app = Flask(__name__)
 HANSH = 462
 OPENROUTER_API_KEY = "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"
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-GPT_MODEL = "mistralai/mistral-7b-instruct"
+GPT_MODEL = "openai/gpt-3.5-turbo"
 
 def get_fee_by_yuan(yuan):
     if yuan <= 1000:
@@ -58,7 +58,7 @@ def ask_openrouter(prompt):
             return r.json()["choices"][0]["message"]["content"]
         else:
             return "GPT серверээс хариу авч чадсангүй."
-    except Exception as e:
+    except Exception:
         return "GPT серверт холбогдох үед алдаа гарлаа."
 
 @app.route(f"/{TOKEN}", methods=["POST"])
