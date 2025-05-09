@@ -1,6 +1,7 @@
 
 from flask import Flask, request
 import telegram
+import os
 
 TOKEN = "7913606596:AAFnw_ur4a5U0hs2mbeD-kAeZwIXJY89-pI"
 bot = telegram.Bot(token=TOKEN)
@@ -25,3 +26,8 @@ def webhook():
 
     bot.send_message(chat_id=chat_id, text=response)
     return "ok"
+
+# 👇 Энэ хэсгийг нэмж өгнө
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
