@@ -14,6 +14,21 @@ def webhook():
     chat_id = update.message.chat.id
     message_text = update.message.text.lower()
 
+    # Normalize Latin to Cyrillic (very basic mapping for key phrases)
+    replacements = {
+        "utac": "утас", "utas": "утас",
+        "baiguullaga": "сайн финанс", "tanai": "та нарын тухай",
+        "tsag": "цагийн хуваарь", "tsagiin": "цагийн хуваарь",
+        "shimtel": "шимтгэл", "shimtghel": "шимтгэл",
+        "haan": "хаана", "baiguulal": "байршил",
+        "agent": "агент", "web": "вэб", "site": "сайт",
+        "tuuh": "та нарын тухай", "ajliin": "ажлын цаг"
+    }
+
+    for latin, cyrillic in replacements.items():
+        if latin in message_text:
+            message_text += " " + cyrillic
+
     # Response logic
     if "ханш" in message_text:
         response = "2025 оны 5-р сарын 9-ны байдлаар 1 юань = 462₮ байна."
