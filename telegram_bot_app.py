@@ -8,6 +8,7 @@ import re
 TOKEN = "7913606596:AAFnw_ur4a5U0hs2mbeD-kAeZwIXJY89-pI"
 bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
+HANSH = 462
 
 def send_main_menu(chat_id):
     keyboard = [
@@ -18,31 +19,37 @@ def send_main_menu(chat_id):
         [InlineKeyboardButton("ℹ️ Бидний тухай", callback_data='bidnii_tuhai')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    bot.send_message(
-        chat_id=chat_id,
-        text="Сайн байна уу! Та дараах үйлчилгээнээс сонгоно уу:",
-        reply_markup=reply_markup
-    )
+    bot.send_message(chat_id=chat_id,
+                     text="Сайн байна уу! Та дараах үйлчилгээнээс сонгоно уу:",
+                     reply_markup=reply_markup)
 
 def normalize_input(text):
     text = text.lower()
     latin_map = {
-        "hansh": "ханш",
-        "shimtgel": "шимтгэл",
-        "barimt": "баримт",
-        "bichig": "бичиг",
-        "tuhai": "тухай",
-        "bidnii": "бидний",
-        "guiwuulga": "гуйвуулга",
-        "guivuulga": "гуйвуулга",
-        "dans": "данс",
-        "dugaar": "дугаар",
-        "utas": "утас",
-        "holbogdoh": "холбогдох"
+        "hansh": "ханш", "shimtgel": "шимтгэл", "barimt": "баримт", "bichig": "бичиг",
+        "tuhai": "тухай", "bidnii": "бидний", "guiwuulga": "гуйвуулга", "guivuulga": "гуйвуулга",
+        "dans": "данс", "dugaar": "дугаар", "utas": "утас", "holbogdoh": "холбогдох",
+        "tugrug": "төгрөг", "tug": "төгрөг", "yuan": "юань"
     }
     for latin, cyrillic in latin_map.items():
         text = re.sub(rf"\b{latin}\b", cyrillic, text)
+    text = re.sub(r"(\d{3,})\s*(tug|₮|төгрөг)", r"\1 төгрөг", text)
+    text = re.sub(r"(\d{3,})\s*(yuan|юань|¥)", r"\1 юань", text)
     return text
+
+def get_fee_by_yuan(yuan):
+    if yuan <= 1000:
+        return 3000, 30
+    elif yuan <= 10000:
+        return 5000, 50
+    elif yuan <= 20000:
+        return 5000, 100
+    elif yuan <= 50000:
+        return 10000, 100
+    elif yuan <= 100000:
+        return 20000, 100
+    else:
+        return 25000, 100
 
 def handle_keyword(chat_id, text):
     text = normalize_input(text)
@@ -63,10 +70,7 @@ def handle_keyword(chat_id, text):
             "🎯 Үнэт зүйл: Ажилтан, Харилцагч, Нийгэм\n"
             "🔭 Алсын хараа: Оюунлаг ирээдүй, сайн сайхныг дэмжинэ\n"
             "🎯 Эрхэм зорилго: Юанийн шилжүүлгийн мэргэжлийн ёс зүйтэй, хууль ёсны дагуу гүйцэтгэн харилцагчийн санхүүгийн хэрэгцээг хялбаршуулна\n\n"
-            "✅ ЭРСДЭЛГҮЙ: Хувийн мэдээлэл, мөнгөн хөрөнгийг хамгаалсан\n"
-            "✅ АЛБАН ЁСНЫ: СЗХ-ны тусгай зөвшөөрөлтэй, хууль ёсны үйл ажиллагаа\n"
-            "✅ ХУРДАН: Минутын дотор гүйлгээ хийх боломжтой\n"
-            "✅ УЯН ХАТАН: Ханшийн уян хатан нөхцөлтэй"
+            "✅ ЭРСДЭЛГҮЙ\n✅ АЛБАН ЁСНЫ\n✅ ХУРДАН\n✅ УЯН ХАТАН"
         )
     elif "данс" in text or "дугаар" in text:
         return (
@@ -79,6 +83,23 @@ def handle_keyword(chat_id, text):
         )
     elif "утас" in text or "холбогдох" in text:
         return "📞 Манай холбогдох утас: 80908090"
+
+    tugrug_match = re.search(r"(\d{3,})\s*төгрөг", text)
+    yuan_match = re.search(r"(\d{3,})\s*юань", text)
+
+    if tugrug_match:
+        amount = int(tugrug_match.group(1))
+        approx_yuan = amount / HANSH
+        fee_t, fee_y = get_fee_by_yuan(approx_yuan)
+        net = amount - fee_t
+        final_yuan = round(net / HANSH, 2)
+        return f"💰 {amount:,}₮ → Шимтгэл: {fee_t:,}₮ + {fee_y}¥ → {final_yuan}¥"
+
+    elif yuan_match:
+        yuan = int(yuan_match.group(1))
+        fee_t, fee_y = get_fee_by_yuan(yuan)
+        return f"💴 {yuan:,}¥ → Шимтгэл: {fee_t:,}₮ + {fee_y}¥"
+
     return None
 
 @app.route(f"/{TOKEN}", methods=["POST"])
