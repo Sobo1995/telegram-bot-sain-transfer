@@ -166,7 +166,7 @@ def webhook():
         bot.send_message(chat_id=chat_id, text=reply)
 
     return "ok"
-eturn "ok"
+return "ok"
 
     if user_id in user_states:
         step = user_states[user_id]
