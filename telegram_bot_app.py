@@ -28,7 +28,7 @@ def send_main_menu(chat_id):
          InlineKeyboardButton("📈 Ханш", callback_data='ханш')],
         [InlineKeyboardButton("💰 Шимтгэл", callback_data='шимтгэл'),
          InlineKeyboardButton("📄 Бичиг баримт", callback_data='баримт')],
-        [InlineKeyboardButton("ℹ️ Бидний тухай", callback_data='бидний тухай'), InlineKeyboardButton("📋 Гуйвуулгын форм", callback_data='/form')]
+        [InlineKeyboardButton("ℹ️ Бидний тухай", callback_data='бидний тухай')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     bot.send_message(
@@ -149,12 +149,6 @@ def webhook():
         data = update.callback_query.data
         chat_id = update.callback_query.message.chat.id
         reply = handle_keyword(chat_id, data)
-        if data == "/form":
-            user_states[user_id] = 0
-            user_data[user_id] = {}
-            bot.send_message(chat_id=chat_id, text="📋 Гуйвуулгын форм бөглөж эхэлцгээе.")
-            bot.send_message(chat_id=chat_id, text=questions[0])
-            return "ok"
         bot.answer_callback_query(update.callback_query.id)
         bot.send_message(chat_id=chat_id, text=reply)
 
