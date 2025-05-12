@@ -10,7 +10,7 @@ bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
 
 HANSH = 462
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 GPT_MODEL = "mistralai/mistral-7b-instruct"
 
