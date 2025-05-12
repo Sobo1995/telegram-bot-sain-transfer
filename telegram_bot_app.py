@@ -124,7 +124,7 @@ def webhook():
             user_data[user_id] = {}
             bot.send_message(chat_id=chat_id, text="📋 Гуйвуулгын форм бөглөж эхэлцгээе.")
             bot.send_message(chat_id=chat_id, text=questions[0])
-            return "ok"
+            rreturn "ok"
 
         if user_id in user_states:
             step = user_states[user_id]
@@ -139,7 +139,7 @@ def webhook():
                     user_states.pop(user_id)
                 else:
                     bot.send_message(chat_id=chat_id, text="📎 Зураг буюу файл илгээнэ үү.")
-            return "ok"
+            rreturn "ok"
 
         if message.text:
             reply = handle_keyword(chat_id, message.text)
@@ -159,13 +159,13 @@ def webhook():
             bot.answer_callback_query(update.callback_query.id)
             bot.send_message(chat_id=chat_id, text="📋 Гуйвуулгын форм бөглөж эхэлцгээе.")
             bot.send_message(chat_id=chat_id, text=questions[0])
-            return "ok"
+            rreturn "ok"
 
         reply = handle_keyword(chat_id, data)
         bot.answer_callback_query(update.callback_query.id)
         bot.send_message(chat_id=chat_id, text=reply)
 
-    return "ok"
+    rreturn "ok"
 return "ok"
 
     if user_id in user_states:
@@ -181,7 +181,7 @@ return "ok"
                 user_states.pop(user_id)
             else:
                 bot.send_message(chat_id=chat_id, text="📎 Зураг буюу файл илгээнэ үү.")
-        return "ok"
+        rreturn "ok"
 
     if message.text:
         reply = handle_keyword(chat_id, message.text)
@@ -201,7 +201,7 @@ return "ok"
             bot.answer_callback_query(update.callback_query.id)
             bot.send_message(chat_id=chat_id, text="📋 Гуйвуулгын форм бөглөж эхэлцгээе.")
             bot.send_message(chat_id=chat_id, text=questions[0])
-            return "ok"
+            rreturn "ok"
 
         reply = handle_keyword(chat_id, data)
         bot.answer_callback_query(update.callback_query.id)
@@ -210,7 +210,7 @@ return "ok"
         bot.answer_callback_query(update.callback_query.id)
         bot.send_message(chat_id=chat_id, text=reply)
 
-    return "ok"
+    rreturn "ok"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
