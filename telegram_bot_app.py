@@ -165,7 +165,7 @@ def webhook():
         bot.answer_callback_query(update.callback_query.id)
         bot.send_message(chat_id=chat_id, text=reply)
 
-    rreturn "ok"
+    return "ok"
 return "ok"
 
     if user_id in user_states:
