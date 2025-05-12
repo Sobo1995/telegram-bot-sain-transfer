@@ -109,19 +109,64 @@ def handle_keyword(chat_id, text):
 
     return None
 
+
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     update = telegram.Update.de_json(request.get_json(force=True), bot)
-    message = update.message
-    chat_id = message.chat.id
-    user_id = message.from_user.id
 
-    if message.text and message.text.lower().strip() == "/form":
-        user_states[user_id] = 0
-        user_data[user_id] = {}
-        bot.send_message(chat_id=chat_id, text="📋 Гуйвуулгын форм бөглөж эхэлцгээе.")
-        bot.send_message(chat_id=chat_id, text=questions[0])
-        return "ok"
+    if update.message:
+        message = update.message
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+
+        if message.text and message.text.lower().strip() == "/form":
+            user_states[user_id] = 0
+            user_data[user_id] = {}
+            bot.send_message(chat_id=chat_id, text="📋 Гуйвуулгын форм бөглөж эхэлцгээе.")
+            bot.send_message(chat_id=chat_id, text=questions[0])
+            return "ok"
+
+        if user_id in user_states:
+            step = user_states[user_id]
+            if step < len(questions) - 1:
+                user_data[user_id][f"q{step+1}"] = message.text
+                user_states[user_id] += 1
+                bot.send_message(chat_id=chat_id, text=questions[step+1])
+            else:
+                if message.document or message.photo:
+                    user_data[user_id]["q7_file"] = "Файл хүлээн авсан"
+                    bot.send_message(chat_id=chat_id, text="✅ Бүх мэдээлэл амжилттай бүртгэгдлээ. Баярлалаа.")
+                    user_states.pop(user_id)
+                else:
+                    bot.send_message(chat_id=chat_id, text="📎 Зураг буюу файл илгээнэ үү.")
+            return "ok"
+
+        if message.text:
+            reply = handle_keyword(chat_id, message.text)
+            if reply:
+                bot.send_message(chat_id=chat_id, text=reply)
+            else:
+                send_main_menu(chat_id)
+
+    elif update.callback_query:
+        data = update.callback_query.data
+        chat_id = update.callback_query.message.chat.id
+        user_id = update.callback_query.from_user.id
+
+        if data == "/form":
+            user_states[user_id] = 0
+            user_data[user_id] = {}
+            bot.answer_callback_query(update.callback_query.id)
+            bot.send_message(chat_id=chat_id, text="📋 Гуйвуулгын форм бөглөж эхэлцгээе.")
+            bot.send_message(chat_id=chat_id, text=questions[0])
+            return "ok"
+
+        reply = handle_keyword(chat_id, data)
+        bot.answer_callback_query(update.callback_query.id)
+        bot.send_message(chat_id=chat_id, text=reply)
+
+    return "ok"
+eturn "ok"
 
     if user_id in user_states:
         step = user_states[user_id]
