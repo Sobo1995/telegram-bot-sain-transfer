@@ -7,7 +7,7 @@ import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import os
 
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+TOKEN = "7913606596:AAFnw_ur4a5U0hs2mbeD-kAeZwIXJY89-pI"
 bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
 
