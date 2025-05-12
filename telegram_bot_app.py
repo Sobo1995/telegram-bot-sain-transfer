@@ -10,9 +10,9 @@ bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
 
 HANSH = 462
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-GPT_MODEL = "openai/gpt-3.5-turbo"
+GPT_MODEL = "mistralai/mistral-7b-instruct"
 
 def get_fee_by_yuan(yuan):
     if yuan <= 1000:
@@ -49,7 +49,7 @@ def ask_openrouter(prompt):
         payload = {
             "model": GPT_MODEL,
             "messages": [
-                {"role": "system", "content": "Та бол Сайн Финанс компанийн туслах чатбот. Хариултыг зөвхөн кирилл үсгээр өг. Монгол хэрэглэгчдэд энгийнээр тайлбарла."},
+                {"role": "system", "content": "Та бол Сайн Финанс компанийн туслах AI чатбот. Та зөвхөн кирилл үсгээр хариулна. Танай компанийн үйлчилгээ, ханш, шимтгэл, бичиг баримтын шаардлага зэрэг мэдээлэлд энгийнээр тайлбар өг."},
                 {"role": "user", "content": prompt}
             ]
         }
@@ -68,10 +68,10 @@ def webhook():
     message_text = update.message.text.lower()
     message_text = normalize_input(message_text)
 
-    response = ""
+    response_parts = []
 
     if "бичиг баримт" in message_text:
-        response = (
+        response_parts.append(
             "📄 Шаардлагатай мэдээлэл, бичиг баримтын жагсаалт:\n"
             "- Илгээгчийн бичиг баримт (зураг, файл хэлбэрээр)\n"
             "- Хүлээн авагчийн бичиг баримт (зураг, файл хэлбэрээр)\n"
@@ -79,16 +79,16 @@ def webhook():
             "- Гүйлгээний дэлгэрэнгүй утга\n"
             "- Ажил үйлчилгээний гэрээ (*шаардлагатай тохиолдолд*)"
         )
-    elif "арилжаа" in message_text:
-        response = (
+    if "арилжаа" in message_text:
+        response_parts.append(
             "💱 Арилжаа хийх нөхцөл:\n"
             "Бид таны төлбөр тооцооны хэрэгцээнд юанийн бэлэн болон бэлэн бус арилжааг "
             "зах зээлд өрсөлдөхүйц уян хатан ханшаар тогтмол санал болгож байна."
         )
-    elif "ханш" in message_text:
-        response = f"📈 Манай ханш: 1 юань = {HANSH}₮"
-    elif "шимтгэл" in message_text:
-        response = (
+    if "ханш" in message_text:
+        response_parts.append(f"📈 Манай ханш: 1 юань = {HANSH}₮")
+    if "шимтгэл" in message_text:
+        response_parts.append(
             "🧾 Шимтгэлийн шатлал:\n"
             "1 – 1,000¥ → 3,000₮ + 30¥\n"
             "1,000 – 10,000¥ → 5,000₮ + 50¥\n"
@@ -97,32 +97,35 @@ def webhook():
             "50,000 – 100,000¥ → 20,000₮ + 100¥\n"
             "100,000¥+ → 25,000₮ + 100¥"
         )
-    else:
-        tugrug_match = re.search(r"(\d{3,})(\s*төгрөг|₮)", message_text)
-        yuan_match = re.search(r"(\d{3,})(\s*юань|¥)", message_text)
 
-        if tugrug_match:
-            amount = int(tugrug_match.group(1))
-            approx_yuan = amount / HANSH
-            fee_t, fee_y = get_fee_by_yuan(approx_yuan)
-            net = amount - fee_t
-            final_yuan = round(net / HANSH, 2)
-            response = (
-                f"💰 Таны оруулсан дүн: {amount:,}₮\n"
-                f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥\n"
-                f"➡️ Шилжих дүн: {net:,}₮ → {final_yuan}¥"
-            )
-        elif yuan_match:
-            yuan = int(yuan_match.group(1))
-            fee_t, fee_y = get_fee_by_yuan(yuan)
-            response = (
-                f"💴 Таны оруулсан дүн: {yuan:,}¥\n"
-                f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥"
-            )
-        else:
-            response = ask_openrouter(message_text)
+    tugrug_match = re.search(r"(\d{3,})(\s*төгрөг|₮)", message_text)
+    yuan_match = re.search(r"(\d{3,})(\s*юань|¥)", message_text)
 
-    bot.send_message(chat_id=chat_id, text=response)
+    if tugrug_match:
+        amount = int(tugrug_match.group(1))
+        approx_yuan = amount / HANSH
+        fee_t, fee_y = get_fee_by_yuan(approx_yuan)
+        net = amount - fee_t
+        final_yuan = round(net / HANSH, 2)
+        response_parts.append(
+            f"💰 Таны оруулсан дүн: {amount:,}₮\n"
+            f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥\n"
+            f"➡️ Шилжих дүн: {net:,}₮ → {final_yuan}¥"
+        )
+    elif yuan_match:
+        yuan = int(yuan_match.group(1))
+        fee_t, fee_y = get_fee_by_yuan(yuan)
+        response_parts.append(
+            f"💴 Таны оруулсан дүн: {yuan:,}¥\n"
+            f"🧾 Шимтгэл: {fee_t:,}₮ + {fee_y}¥"
+        )
+
+    # Always add GPT fallback at the end
+    ai_answer = ask_openrouter(message_text)
+    response_parts.append("🧠 GPT AI:\n" + ai_answer)
+
+    final_response = "\n\n".join(response_parts)
+    bot.send_message(chat_id=chat_id, text=final_response)
     return "ok"
 
 if __name__ == "__main__":
