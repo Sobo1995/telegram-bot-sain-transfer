@@ -1,1 +1,2 @@
-<TRUNCATED_FOR_BREVITY>
+
+print("Hello, Telegram bot is ready!")
