@@ -31,16 +31,16 @@ def handle_message(update, context):
     if any(key in text for key in ["ханш", "hansh"]):
         send_message(update.message.chat.id, "📈 Манай ханш: 1 юань = 462₮")
     elif any(key in text for key in ["шимтгэл", "shimtgel"]):
-        send_message(update.message.chat.id, "💰 Шимтгэлийн шатлал:
+        send_message(update.message.chat.id, """💰 Шимтгэлийн шатлал:
 1¥ - 1,000¥ = 3,000₮ + 30¥
 1,000¥ - 10,000¥ = 5,000₮
-10,000¥+ = 10,000-25,000₮")
+10,000¥+ = 10,000-25,000₮""")
     elif any(key in text for key in ["бичиг баримт", "barimt", "bichig", "barimt"]):
         send_message(update.message.chat.id, "📑 Бүрдүүлэх бичиг баримт:
 Илгээгч, хүлээн авагчийн бичиг баримт
 Дансны дугаар, банкны нэр
 Гүйлгээний утга")
-    elif any(key in text for key in ["тухай", "bidnii", "about", "bid"]):
+    elif any(key in text for key in ["тухай", "company", "about", "bid"]):
         send_message(update.message.chat.id, "ℹ️ Бидний тухай:
 Сайн Трансфер нь 7 жилийн турш харилцагчдын санхүүгийн хэрэгцээг хялбаршуулах зорилготой ажиллаж байна.")
     elif any(key in text for key in ["утас", "dugaar", "utas", "holboo"]):
